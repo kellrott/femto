@@ -39,7 +39,7 @@ def cond(predicate, truth, falsehood):
     e.condition.truth.CopyFrom(truth)
     e.condition.falsehood.CopyFrom(falsehood)
     return e
-    
+
 def bind(symbol, expression):
     b = schema.Binding()
     b.symbol = symbol.symbol
@@ -86,7 +86,7 @@ def nativeSum(x):
 
 def tamp(z):
     return [x for y in z for x in y]
-    
+
 def astForDef(d):
     source = inspect.getsource(d)
     tree = ast.parse(source)
@@ -184,6 +184,19 @@ def run():
     json = renderProto(output)
     print(json)
     # print(compileFemto(astForDef(nativeSum)))
+
+def convert(f):
+    if isinstance(f, basestring):
+        tree = ast.parse(f)
+        return compileFemto(tree)
+    else:
+        output = femto(f)
+        return renderProto(output)
+
+
+
+def to_dict(compiled):
+    return json_format.MessageToDict(compiled)
 
 # defold = meta.decompile(nativeFold)
 # source = meta.dump_python_source(defold)

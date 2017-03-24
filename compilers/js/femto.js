@@ -15,7 +15,7 @@ Object.defineProperty(Function.prototype, 'bind', {
   }
 });
 
-femto = function() {
+femto_env = function(environ) {
   function lookup(env, key) {
     if (env.length > 0) {
       var keys = Object.keys(env[0])
@@ -26,13 +26,13 @@ femto = function() {
         return lookup(env.slice(1), key)
       }
     } else {
-      console.log('unbound symbol! ' + key)
+      console.error('unbound symbol! ' + key)
     }
   }
 
   function evaluate(env, femto) {
     var key = Object.keys(femto)[0]
-    console.log(key)
+    console.error(key)
     if (key === 'nil') {
       value = null
     } else if (key === 'string' || key === 'number') {
@@ -66,6 +66,8 @@ femto = function() {
       }
       value = program
     } else if (key === 'let') {
+      console.error(key);
+      console.error(femto);
       var assign = femto['let']
       var scope = assign['bindings'].reduce(function(scope, binding) {
         var key = binding['symbol']
@@ -83,43 +85,47 @@ femto = function() {
       var result = op.apply(op.boundObject, args)
       value = result
     } else {
-      console.log('unknown syntax! ' + JSON.stringify(femto))
+      console.error('unknown syntax! ' + JSON.stringify(femto) + " : " + JSON.stringify(key))
       value = undefined
     }
 
-    console.log(value)
+    console.error(value)
     return value
   }
 
-  return evaluate
-} ();
-
-python = { "function": { "body": { "let": { "body": { "apply": { "operation": { "symbol": "reduce" }, "arguments": [ { "function": { "body": { "apply": { "operation": { "symbol": "+" }, "arguments": [ { "symbol": "b" }, { "symbol": "a" } ] } }, "arguments": [ "a", "b" ] } }, { "number": 0.0 }, { "symbol": "counts" } ] } }, "bindings": [ { "symbol": "counts", "expression": { "apply": { "operation": { "apply": { "operation": { "symbol": "attribute" }, "arguments": [ { "apply": { "operation": { "symbol": "get" }, "arguments": [ { "symbol": "x" }, { "string": "count" } ] } }, { "string": "vals" } ] } } } } } ] } }, "arguments": [ "x" ] }}
-
-environment = [{
-  '+': function(a, b) {
-    if (isNumber(a)) {
-      if (isNumber(b)) {
-        return a + b
-      } else {
-        return a
-      }
-    } else {
-      return isNumber(b) ? b : 0
-    }
-  },
-
-  'reduce': function(f, i, l) {return l.reduce(f, i)},
-  'get': function(m, k) {return m[k]},
-  'attribute': function(m, k) {
-    var value = m[k]
-    if (isFunction(value)) {
-      var fn = value.bind(m)
-    }
-    return fn
+  function build(femto) {
+    return evaluate(environ, femto)
   }
-}]
 
-var py = femto(environment, python)
-var result = py({count: {a: 1, b: 2, c: 3, d: 4, e: 5, f: 6, vals: function(m) {return Object.values(m || this)}}})
-console.log(result)
+  return build
+};
+
+femto = {
+  environment : [{
+    '+': function(a, b) {
+      if (isNumber(a)) {
+        if (isNumber(b)) {
+          return a + b
+        } else {
+          return a
+        }
+      } else {
+        return isNumber(b) ? b : 0
+      }
+    },
+
+    'reduce': function(f, i, l) {return l.reduce(f, i)},
+    'get': function(m, k) {return m[k]},
+    'attribute': function(m, k) {
+      var value = m[k]
+      if (isFunction(value)) {
+        var fn = value.bind(m)
+      }
+      return fn
+    }
+  }],
+
+  compile : function(code) {
+    return femto_env(this.environment)(code)
+  }
+}
